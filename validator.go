@@ -107,9 +107,11 @@ func (a *Validator) getFields(rt reflect.Type) []field {
 	n := rt.NumField()
 	for i := 0; i < n; i++ {
 		ft := rt.Field(i)
-		// Ignore unexported
-		if unicode.IsLower([]rune(ft.Name)[0]) {
-			continue
+		if !ft.Anonymous {
+			// Ignore unexported but allow embedded fields
+			if unicode.IsLower([]rune(ft.Name)[0]) {
+				continue
+			}
 		}
 		// Explicitly ignored
 		tags := ft.Tag.Get(a.tagName)
