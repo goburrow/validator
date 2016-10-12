@@ -126,7 +126,7 @@ func (a *Validator) getFields(rt reflect.Type) []field {
 		fields = append(fields, field{
 			idx:  i,
 			name: ft.Name,
-			tags: tags,
+			tags: parseTags(tags),
 		})
 	}
 	a.fieldCache.save(rt, fields)
@@ -177,9 +177,9 @@ func (s *state) validateStruct(rv reflect.Value) {
 	for i := 0; i < n; i++ {
 		ft := &fields[i]
 		fv := rv.Field(ft.idx)
-		if ft.tags != "" {
+		if len(ft.tags) > 0 {
 			// Validate this field
-			s.validateField(fv, ft.name, ft.tags)
+			s.validateField(fv, ft)
 		}
 		s.validateValue(fv)
 	}
@@ -211,7 +211,30 @@ func (s *state) validateMap(rv reflect.Value) {
 	}
 }
 
-func (s *state) validateField(fv reflect.Value, name, tags string) {
+func (s *state) validateField(fv reflect.Value, ft *field) {
+	for i, _ := range ft.tags {
+		tag := &ft.tags[i]
+		f, ok := s.validator.funcs[tag.name]
+		if ok {
+			err := f(fv, ft.name, tag.param)
+			if err != nil {
+				s.addError(err)
+			}
+		} else {
+			s.addError(UnsupportedError(tag.name))
+		}
+	}
+}
+
+func (s *state) addError(err error) {
+	s.errors = append(s.errors, err)
+}
+
+func parseTags(tags string) []fieldTag {
+	if tags == "" {
+		return nil
+	}
+	fieldTags := make([]fieldTag, 0, 2)
 	for tags != "" {
 		var tag string
 		i := strings.Index(tags, ",")
@@ -222,21 +245,13 @@ func (s *state) validateField(fv reflect.Value, name, tags string) {
 			tag = tags[:i]
 			tags = tags[i+1:]
 		}
-		fn, param := parseTag(tag)
-		f, ok := s.validator.funcs[fn]
-		if ok {
-			err := f(fv, name, param)
-			if err != nil {
-				s.addError(err)
-			}
-		} else {
-			s.addError(UnsupportedError(fn))
-		}
+		name, param := parseTag(tag)
+		fieldTags = append(fieldTags, fieldTag{
+			name:  name,
+			param: param,
+		})
 	}
-}
-
-func (s *state) addError(err error) {
-	s.errors = append(s.errors, err)
+	return fieldTags
 }
 
 // parseTag returns function name and parameter.

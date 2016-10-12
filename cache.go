@@ -6,10 +6,15 @@ import (
 	"sync/atomic"
 )
 
+type fieldTag struct {
+	name  string
+	param string
+}
+
 type field struct {
 	idx  int
 	name string
-	tags string
+	tags []fieldTag
 }
 
 // fieldCache stores cached fields.
