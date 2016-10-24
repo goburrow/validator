@@ -329,12 +329,11 @@ func BenchmarkSimple(b *testing.B) {
 		"a",
 		1,
 	}
-	for i := 0; i < b.N; i++ {
-		err := v.Validate(&s)
-		if err == nil {
-			b.Fatalf("error expected")
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			v.Validate(&s)
 		}
-	}
+	})
 }
 
 func BenchmarkNoTag(b *testing.B) {
@@ -361,12 +360,11 @@ func BenchmarkNoTag(b *testing.B) {
 			s1{4, 0},
 		},
 	}
-	for i := 0; i < b.N; i++ {
-		err := v.Validate(&s)
-		if err != nil {
-			b.Fatal(err)
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			v.Validate(&s)
 		}
-	}
+	})
 }
 
 func BenchmarkWithTag(b *testing.B) {
@@ -393,10 +391,9 @@ func BenchmarkWithTag(b *testing.B) {
 			s1{4, 0},
 		},
 	}
-	for i := 0; i < b.N; i++ {
-		err := v.Validate(&s)
-		if err == nil {
-			b.Fatal("error expected")
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			v.Validate(&s)
 		}
-	}
+	})
 }
