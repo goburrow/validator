@@ -30,7 +30,7 @@ func (e Errors) Error() string {
 	var buf bytes.Buffer
 	for i, err := range e {
 		if i > 0 {
-			buf.WriteString("; ")
+			buf.WriteString(",\n")
 		}
 		buf.WriteString(err.Error())
 	}

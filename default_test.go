@@ -1,47 +1,58 @@
-package validator
+package validator_test
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+
+	"github.com/goburrow/validator"
+)
+
+type User struct {
+	Name      string     `valid:"notempty"`
+	Age       int        `valid:"min=13"`
+	Addresses []*Address `valid:"min=1,max=2"`
+}
+
+type Address struct {
+	Line1    string
+	Line2    string
+	PostCode int    `valid:"min=1"`
+	Country  string `valid:"notempty,max=2"`
+}
+
+func (a *Address) Validate() error {
+	if a.Line1 == "" && a.Line2 == "" {
+		return errors.New("Either address Line1 or Line2 must be set")
+	}
+	return nil
+}
 
 func ExampleValidator() {
-	type data struct {
-		A string       `valid:"notempty"`
-		B int          `valid:"min=1,max=10"`
-		C map[int]bool `valid:"notempty,max=2"`
-		D []data
-	}
-	d := &data{
-		A: "",
-		B: 11,
-		C: map[int]bool{
-			1: false,
-			2: true,
-			3: false,
-		},
-		D: []data{
-			data{
-				A: "ab",
-				B: 2,
+	u := User{
+		Addresses: []*Address{
+			&Address{
+				Line1:    "Somewhere",
+				PostCode: 1000,
+				Country:  "AU",
 			},
-			data{
-				A: "cd",
-				B: 0,
-				C: map[int]bool{
-					0: false,
-				},
+			&Address{
+				PostCode: -1,
+				Country:  "US",
+			},
+			&Address{
+				Line2:    "Here",
+				PostCode: 1,
+				Country:  "USA",
 			},
 		},
 	}
-	v := Default()
-	err := v.Validate(d)
-	if err != nil {
-		for _, e := range err.(Errors) {
-			fmt.Println(e)
-		}
-	}
+	v := validator.Default()
+	fmt.Println(v.Validate(&u))
 	// Output:
-	// A must not be empty
-	// B must not be greater than 10 (was 11)
-	// C must have length not greater than 2 (was 3)
-	// C must not be empty
-	// B must not be less than 1 (was 0)
+	// Name must not be empty,
+	// Age must not be less than 13 (was 0),
+	// Addresses must have length not greater than 2 (was 3),
+	// Either address Line1 or Line2 must be set,
+	// PostCode must not be less than 1 (was -1),
+	// Country must have length not greater than 2 (was 3)
 }
