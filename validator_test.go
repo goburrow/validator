@@ -2,6 +2,7 @@ package validator
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 	"testing"
 )
@@ -286,7 +287,7 @@ func TestEmbedded(t *testing.T) {
 	assertNOK(t, err, "eA", "eB", "C", "eA", "eB", "E", "B")
 }
 
-func TestUnexportField(t *testing.T) {
+func TestUnexported(t *testing.T) {
 	type s1 struct {
 		A int `valid:"nok=A"`
 	}
@@ -301,6 +302,52 @@ func TestUnexportField(t *testing.T) {
 	v := newTestValidator()
 	err := v.Validate(&s)
 	assertNOK(t, err, "A")
+}
+
+type vProp string
+
+func (v vProp) Validate() error {
+	if v != "" {
+		return errors.New(string(v))
+	}
+	return nil
+}
+
+type vStruct struct {
+	A int
+	B int `valid:"nok"`
+	C vProp
+	D *vStruct
+	E interface{}
+}
+
+func (v *vStruct) Validate() error {
+	return fmt.Errorf("%v", v.A)
+}
+
+func TestValidatable(t *testing.T) {
+	s := vStruct{
+		A: 1,
+		B: 0,
+		C: vProp("C"),
+		D: &vStruct{
+			A: 2,
+			B: 0,
+			C: vProp(""),
+			D: nil,
+			E: nil,
+		},
+		E: &vStruct{
+			A: 3,
+			B: 0,
+			C: vProp("EC"),
+			D: nil,
+			E: vProp("EE"),
+		},
+	}
+	v := newTestValidator()
+	err := v.Validate(&s)
+	assertNOK(t, err, "1", "nok", "C", "2", "nok", "3", "nok", "EC", "EE")
 }
 
 func assertNOK(t *testing.T, err error, msg ...string) {

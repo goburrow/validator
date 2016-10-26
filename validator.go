@@ -3,6 +3,7 @@ package validator
 
 import (
 	"bytes"
+	"fmt"
 	"reflect"
 	"strings"
 	"unicode"
@@ -41,6 +42,14 @@ type Func func(v reflect.Value, name, param string) error
 
 // Option sets options for the validator.
 type Option func(v *Validator)
+
+// Validatable is an interface implemented by types that can
+// validate themselves.
+type Validatable interface {
+	Validate() error
+}
+
+var validatableType = reflect.TypeOf(new(Validatable)).Elem()
 
 // Validator implements value validation for structs and fields.
 type Validator struct {
@@ -88,8 +97,18 @@ func (a *Validator) register(name string, fn Func) {
 
 // Validate validates given value. Value v is usually a pointer to
 // the struct to validate, but it can also be a struct, slice or array.
-func (a *Validator) Validate(v interface{}) error {
+func (a *Validator) Validate(v interface{}) (err error) {
 	s := state{validator: a}
+	defer func() {
+		if r := recover(); r != nil {
+			if rerr, ok := r.(error); ok {
+				s.addError(rerr)
+			} else {
+				s.addError(fmt.Errorf("%v", r))
+			}
+			err = Errors(s.errors)
+		}
+	}()
 	s.validateInterface(v)
 	if len(s.errors) == 0 {
 		return nil
@@ -119,7 +138,7 @@ func (a *Validator) getFields(rt reflect.Type) []field {
 			continue
 		}
 		if tags == "" {
-			if !supported(ft.Type.Kind()) {
+			if !supported(ft.Type) {
 				continue
 			}
 		}
@@ -133,12 +152,12 @@ func (a *Validator) getFields(rt reflect.Type) []field {
 	return fields
 }
 
-func supported(rv reflect.Kind) bool {
-	switch rv {
+func supported(rt reflect.Type) bool {
+	switch rt.Kind() {
 	case reflect.Struct, reflect.Slice, reflect.Array, reflect.Map, reflect.Ptr, reflect.Interface:
 		return true
 	}
-	return false
+	return rt.Implements(validatableType)
 }
 
 type state struct {
@@ -148,6 +167,9 @@ type state struct {
 }
 
 func (s *state) validateValue(rv reflect.Value) {
+	// Call Validate method if this value implements Validatable
+	s.validateValidatable(rv)
+
 	// Resolve pointer
 	for rv.Kind() == reflect.Ptr && !rv.IsNil() {
 		rv = rv.Elem()
@@ -187,7 +209,7 @@ func (s *state) validateStruct(rv reflect.Value) {
 
 func (s *state) validateSlice(rv reflect.Value) {
 	rt := rv.Type()
-	if !supported(rt.Elem().Kind()) {
+	if !supported(rt.Elem()) {
 		return
 	}
 	n := rv.Len()
@@ -199,7 +221,7 @@ func (s *state) validateSlice(rv reflect.Value) {
 
 func (s *state) validateMap(rv reflect.Value) {
 	rt := rv.Type()
-	if !supported(rt.Elem().Kind()) {
+	if !supported(rt.Elem()) {
 		return
 	}
 	if rv.Len() == 0 {
@@ -231,6 +253,21 @@ func (s *state) validateField(fv reflect.Value, name, tags string) {
 			}
 		} else {
 			s.addError(UnsupportedError(fn))
+		}
+	}
+}
+
+func (s *state) validateValidatable(rv reflect.Value) {
+	if !rv.IsValid() || rv.Type().NumMethod() == 0 {
+		return
+	}
+	if rv.Kind() == reflect.Ptr && rv.IsNil() {
+		return
+	}
+	if f, ok := rv.Interface().(Validatable); ok {
+		err := f.Validate()
+		if err != nil {
+			s.addError(err)
 		}
 	}
 }
