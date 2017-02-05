@@ -1,7 +1,5 @@
 # Validator
 
-[![GoDoc](https://godoc.org/github.com/goburrow/validator?status.svg)](https://godoc.org/github.com/goburrow/validator) [![Build Status](https://travis-ci.org/goburrow/validator.svg?branch=master)](https://travis-ci.org/goburrow/validator) 
-
 Package validator implements value validation for struct fields.
 
 The package was a fork of go-validator but was rewritten to:
@@ -30,6 +28,7 @@ type User struct {
 	Name      string     `valid:"notempty"`
 	Age       int        `valid:"min=13"`
 	Addresses []*Address `valid:"min=1,max=2"`
+	BirthDay  string     `valid:"date=MMDDYYYY"`
 }
 
 type Address struct {
@@ -71,6 +70,7 @@ func main() {
 	// Name must not be empty,
 	// Age must not be less than 13 (was 0),
 	// Addresses must have length not greater than 2 (was 3),
+	// BirthDay is not a valid date,
 	// Either address Line1 or Line2 must be set,
 	// PostCode must not be less than 1 (was -1),
 	// Country must have length not greater than 2 (was 3)

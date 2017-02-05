@@ -8,6 +8,8 @@ func DefaultOption() Option {
 		v.register("notempty", notEmpty)
 		v.register("min", min)
 		v.register("max", max)
+		v.register("regex", regex)
+		v.register("date", date)
 	}
 }
 
