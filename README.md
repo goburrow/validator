@@ -10,7 +10,7 @@ The package was a fork of go-validator but was rewritten to:
 
 ## Download
 ```
-go get -u github.com/goburrow/validator
+go get github.com/predixdeveloperACN/validator
 ```
 
 ## Example
@@ -21,7 +21,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/goburrow/validator"
+	"github.com/predixdeveloperACN/validator"
 )
 
 type User struct {
@@ -29,6 +29,7 @@ type User struct {
 	Age       int        `valid:"min=13"`
 	Addresses []*Address `valid:"min=1,max=2"`
 	BirthDay  string     `valid:"date=MMDDYYYY"`
+	Phone     int        `valid:"regex=^[0-9]*$"`
 }
 
 type Address struct {
@@ -75,4 +76,33 @@ func main() {
 	// PostCode must not be less than 1 (was -1),
 	// Country must have length not greater than 2 (was 3)
 }
+```
+
+## Date Validator Placeholders
+```
+M    - month (1)
+MM   - month (01)
+MMM  - month (Jan)
+MMMM - month (January)
+D    - day (2)
+DD   - day (02)
+DDD  - day (Mon)
+DDDD - day (Monday)
+YY   - year (06)
+YYYY - year (2006)
+hh   - hours (15)
+mm   - minutes (04)
+ss   - seconds (05)
+
+AM/PM hours: 'h' followed by optional 'mm' and 'ss' followed by 'pm', e.g.
+
+hpm        - hours (03PM)
+h:mmpm     - hours:minutes (03:04PM)
+h:mm:sspm  - hours:minutes:seconds (03:04:05PM)
+
+Time zones: a time format followed by 'ZZZZ', 'ZZZ' or 'ZZ', e.g.
+
+hh:mm:ss ZZZZ (16:05:06 +0100)
+hh:mm:ss ZZZ  (16:05:06 CET)
+hh:mm:ss ZZ   (16:05:06 +01:00)
 ```
