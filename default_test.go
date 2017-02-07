@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/goburrow/validator"
+	"github.com/predixdeveloperACN/validator"
 )
 
 type User struct {
